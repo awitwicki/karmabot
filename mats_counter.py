@@ -4,7 +4,7 @@
 mats_filename = 'mats.txt'
 stopwords = open(mats_filename, 'r', encoding= 'utf-8').read().split('\n')
 
-def count_mats(message_text: str):
+async def count_mats(message_text: str):
     count_mats: int = 0
 
     for stopword in stopwords:
@@ -14,4 +14,5 @@ def count_mats(message_text: str):
     #limit
     if count_mats > 5:
         count_mats = 5
+    print(message_text, count_mats)
     return count_mats

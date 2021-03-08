@@ -1,28 +1,32 @@
 # -*- coding: utf8 -*-
-#/usr/bin/python3.7
+#/usr/bin/python3.9
 
 from datetime import datetime, timezone
-from telegram import bot
-from telegram.ext import Updater, Filters, MessageHandler, CallbackQueryHandler
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+from aiogram import Bot, types, executor
+from aiogram.dispatcher import Dispatcher #Updater, Filters, MessageHandler, CallbackQueryHandler
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+
 import os
 import codecs
+import asyncio
 
 from Config import Config
 from mats_counter import count_mats
 
-conf = Config('congfig.ini', ['telegram_token','destruction_timeout','database_filename'])
+#conf = Config('congfig.ini', ['telegram_token','destruction_timeout','database_filename'])
 
 # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Transition-guide-to-Version-12.0
-bot_token = conf.Data['telegram_token']
+#bot_token = conf.Data['telegram_token']
 
 #bot will delete his owm nessage after defined time
-destruction_timeout = int(conf.Data['destruction_timeout'])
+#destruction_timeout = int(conf.Data['destruction_timeout'])
 
-database_filename = conf.Data['database_filename']
+#database_filename = conf.Data['database_filename']
 
 increase_words = ['+','спасибо','дякую','благодарю', '👍', '😁', '😂', '😄', '😆', 'хаха']
 decrease_words = ['-', '👎']
+
+database_filename = 'test.txt'
 
 users = {}
 user_karma = {}
@@ -30,6 +34,8 @@ user_karma = {}
 bot_id = None
 last_top = None
 
+bot = Bot(token='1611904650:AAF4Upr02tqMOTV6--nbo9iNpSMrmlhEYtY')#токен для вас)
+dp = Dispatcher(bot)
 #Todo:
 #ignore karmaspam from users
 # def check_user_for_karma(user_id: int, dest_user_id: int):
@@ -38,7 +44,57 @@ last_top = None
 #     except:
 #         return True
 
-def get_karma(user_id : int):
+@dp.callback_query_handler()
+async def stats(call: types.CallbackQuery):
+    command = update.callback_query.data
+    if command == 'refresh_top':
+        replytext, reply_markup = getTop()
+        replytext += f'\n`Обновлено UTC {datetime.utcnow()}`'
+        query = call.message
+        query.edit_message_text(text=replytext, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+        return None
+
+@dp.message_handler()
+async def on_msg(message: types.Message):
+
+    user_id = message.from_user.id
+    username = message.from_user.username
+    _chat_id = message.chat.id
+    messageText = message.text.lower()
+
+    mats = await count_mats(messageText)
+    await add_or_update_user(user_id, username, mats)
+    
+    #print(message)
+
+    global last_top
+
+    is_old = False
+
+    if message.date and (datetime.utcnow() - message.date).seconds > 300:
+        is_old = True
+
+    # karma message
+    
+    if message.reply_to_message and message.reply_to_message.from_user.id and user_id and bot_id != message.reply_to_message.from_user.id:
+        if messageText in increase_words or messageText in decrease_words and message.reply_to_message.from_user.is_bot is False:
+            karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
+            if karma_changed:
+                msg = await bot.send_message(_chat_id, text=karma_changed)
+                await autodelete_message(chat_id=_chat_id, message_id=msg.message_id, seconds=120)
+    # commands
+    elif messageText == "карма":
+        #print(users)
+        reply_text = await get_karma(user_id)
+        msg = await bot.send_message(_chat_id, text=reply_text, parse_mode=ParseMode.MARKDOWN)
+        #await autodelete_message(msg.chat_id, msg.message_id)
+    elif messageText == "топ":
+        if not last_top or (datetime.utcnow() - last_top).seconds > 120:
+            reply_text, reply_markup = await getTop()
+            msg = await bot.send_message(_chat_id, text=reply_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+            await autodelete_message(msg.chat.id, msg.message_id, 120)
+            last_top = datetime.utcnow()
+async def get_karma(user_id : int):
     user = users[user_id]
 
     replytext = f"Привет {user['username']}, tвоя карма:\n\n"
@@ -52,7 +108,7 @@ def get_karma(user_id : int):
     return replytext
 
 
-def add_or_update_user(user_id: int, username: str, mats_count: int):
+async def add_or_update_user(user_id: int, username: str, mats_count: int):
     try:
         users[user_id]['total_messages'] += 1
         users[user_id]['total_mats'] += mats_count
@@ -63,10 +119,10 @@ def add_or_update_user(user_id: int, username: str, mats_count: int):
         users[user_id]['username'] = username
         users[user_id]['karma'] = 0
 
-    saveToFile(users)
+    await saveToFile(users)
 
 
-def increase_karma(dest_user_id: int, message_text: str):
+async def increase_karma(dest_user_id: int, message_text: str):
     if dest_user_id == bot_id:
         if message_text in increase_words :
             return "спасибо ❤️"
@@ -93,26 +149,13 @@ def increase_karma(dest_user_id: int, message_text: str):
                 replytext += 'понизил '
                 is_changed = True
                 break
-    if not is_changed:
-        return
-
     replytext += f'карму {_username} до {new_karma}!'
-    saveToFile(users)
+    await saveToFile(users)
 
     return replytext
 
 
-def stats(update, context):
-    command = update.callback_query.data
-    if command == 'refresh_top':
-        replytext, reply_markup = getTop()
-        replytext += f'\n`Обновлено UTC {datetime.now(timezone.utc)}`'
-        query = update.callback_query
-        query.edit_message_text(text=replytext, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-        return
-
-
-def getTop():
+async def getTop():
     replytext = "*Топ 10 кармы чата:*\n"
     users_list = [ v for k, v in users.items()]
     sorted_users_list = sorted(users_list, key = lambda i: i['karma'], reverse = True)[:10]
@@ -138,8 +181,6 @@ def getTop():
         matscount = usr['total_mats']
         replytext+=f'`{username}` - матов `{matscount}`\n'
 
-    replytext += "\nКулдаун топа - 5 минут"
-
     replytext = replytext.replace('@', '')
 
     keyboard = [[InlineKeyboardButton("Обновить", callback_data='refresh_top')]]
@@ -147,17 +188,18 @@ def getTop():
     return replytext, reply_markup
 
 
-def saveToFile(dict):
+async def saveToFile(dict):
     f = codecs.open(database_filename, "w", "utf-8")
     f.write(str(users))
     f.close()
 
 
-def autodelete_message(context):
-    context.bot.delete_message(chat_id=context.job.context[0], message_id=context.job.context[1])
+async def autodelete_message(chat_id: int, message_id: int, seconds=0):
+    await asyncio.sleep(seconds)
+    await bot.delete_message(chat_id=chat_id, message_id=message_id)
 
 
-def openFile():
+async def openFile():
     if os.path.isfile(database_filename):
         global users
         users = eval(open(database_filename, 'r', encoding= 'utf-8').read())
@@ -165,67 +207,21 @@ def openFile():
         print ("File not exist")
 
 
-def on_msg(update, context):
-    global last_top
-    try:
-        message = update.message
-        if message is None:
-            return
-
-        if message.text == None:
-            return
-
-        is_old = False
-        if message.date and (datetime.now(timezone.utc) - message.date).seconds > 300:
-            is_old = True
-
-        user_id = message.from_user.id
-        username = message.from_user.name
-        _chat_id = message.chat_id
-
-        messageText = message.text.lower()
-
-        # karma message
-        if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:
-            karma_changed = increase_karma(message.reply_to_message.from_user.id, messageText)
-            if karma_changed and not is_old:
-                msg = context.bot.send_message(_chat_id, text=karma_changed)
-                context.job_queue.run_once(autodelete_message, destruction_timeout, context=[msg.chat_id, msg.message_id])
-
-        # commands
-        if messageText == "карма" and not is_old:
-            reply_text = get_karma(user_id)
-            msg = context.bot.send_message(_chat_id, text=reply_text, parse_mode=ParseMode.MARKDOWN)
-            context.job_queue.run_once(autodelete_message, destruction_timeout, context=[msg.chat_id, msg.message_id])
-        if messageText == "топ" and not is_old:
-            if not last_top or (datetime.now(timezone.utc) - last_top).seconds > 300:
-                reply_text, reply_markup = getTop()
-                msg = context.bot.send_message(_chat_id, text=reply_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-                context.job_queue.run_once(autodelete_message, 300, context=[msg.chat_id, msg.message_id])
-                last_top = datetime.now(timezone.utc)
-
-        mats = count_mats(messageText)
-        add_or_update_user(user_id, username, mats)
-
-    except Exception as e:
-        print(e)
-
-
-def main():
-    global bot_id
-
-    openFile()
-
-    updater = Updater(bot_token, use_context=True)
-
-    dp = updater.dispatcher
-    dp.add_handler(MessageHandler(Filters.text, on_msg, edited_updates = True))
-    dp.add_handler(CallbackQueryHandler(stats))
-
-    updater.start_polling()
-    bot_id = updater.bot.id
-    print("Bot is started.")
-    updater.idle()
+#def main():
+#    global bot_id
+#
+#    await openFile()
+#
+#    updater = Updater(bot_token, use_context=True)
+#
+#    dp = updater.dispatcher
+#    dp.add_handler(MessageHandler(Filters.text, on_msg, edited_updates = True))
+#    dp.add_handler(CallbackQueryHandler(stats))
+#
+#    updater.start_polling()
+#    bot_id = updater.bot.id
+#    print("Bot is started.")
+#    updater.idle()
 
 if __name__ == '__main__':
-    main()
+    executor.start_polling(dp, on_startup=print("Bot is started."))    

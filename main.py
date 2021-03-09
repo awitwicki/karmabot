@@ -34,7 +34,7 @@ user_karma = {}
 bot_id = None
 last_top = None
 
-bot = Bot(token='1611904650:AAF4Upr02tqMOTV6--nbo9iNpSMrmlhEYtY')#токен для вас)
+bot = Bot(token='TOKEN')
 dp = Dispatcher(bot)
 #Todo:
 #ignore karmaspam from users

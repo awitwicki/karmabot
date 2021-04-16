@@ -28,9 +28,10 @@ user_karma = {}
 bot_id = None
 last_top = None
 
-bot = Bot(token=bot_token)
-dp = Dispatcher(bot)
+bot: Bot = Bot(token=bot_token)
+dp: Dispatcher = Dispatcher(bot)
 
+bot_id = bot.id
 
 @dp.callback_query_handler()
 async def stats(call: types.CallbackQuery):
@@ -54,12 +55,11 @@ async def on_msg(message: types.Message):
     await add_or_update_user(user_id, username, mats)
 
     # karma message
-    if message.reply_to_message and message.reply_to_message.from_user.id and user_id and bot_id != message.reply_to_message.from_user.id:
-        if messageText in increase_words or messageText in decrease_words and message.reply_to_message.from_user.is_bot is False:
-            karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
-            if karma_changed:
-                msg = await bot.send_message(_chat_id, text=karma_changed)
-                await autodelete_message(chat_id=_chat_id, message_id=msg.message_id, seconds=destruction_timeout)
+    if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:
+        karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
+        if karma_changed:
+            msg = await bot.send_message(_chat_id, text=karma_changed)
+            await autodelete_message(chat_id=_chat_id, message_id=msg.message_id, seconds=destruction_timeout)
 
     # commands
     elif messageText == "карма":
@@ -110,6 +110,7 @@ async def add_or_update_user(user_id: int, username: str, mats_count: int):
 
 
 async def increase_karma(dest_user_id: int, message_text: str):
+    global bot_id
     if dest_user_id == bot_id:
         if message_text in increase_words :
             return "спасибо ❤️"
@@ -136,6 +137,8 @@ async def increase_karma(dest_user_id: int, message_text: str):
                 replytext += 'понизил '
                 is_changed = True
                 break
+    if not is_changed:
+        return
 
     replytext += f'карму {_username} до {new_karma}!'
     await save_to_file(users)
@@ -176,6 +179,15 @@ async def getTop():
     return replytext, reply_markup
 
 
+def read_users():
+    if os.path.isfile(database_filename):
+        global users
+        with open(database_filename, 'r', encoding= 'utf-8') as f:
+            users = eval(f.read())
+    else:
+        print ("File not exist")
+
+
 async def save_to_file(dict):
     f = codecs.open(database_filename, "w", "utf-8")
     f.write(str(users))
@@ -196,4 +208,5 @@ async def openFile():
 
 
 if __name__ == '__main__':
+    read_users()
     executor.start_polling(dp, on_startup=print("Bot is started."))

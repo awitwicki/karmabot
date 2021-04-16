@@ -33,6 +33,9 @@ dp: Dispatcher = Dispatcher(bot)
 
 bot_id = bot.id
 
+def check_message_is_old(message: types.Message):
+    return (datetime.now() - message.date).seconds > 300
+
 
 @dp.callback_query_handler(lambda c: c.data == 'refresh_top')
 async def process_callback_update_top(callback_query: types.CallbackQuery):
@@ -54,6 +57,10 @@ async def on_msg(message: types.Message):
 
     mats = await count_mats(messageText)
     await add_or_update_user(user_id, username, mats)
+
+    is_old = check_message_is_old(message)
+    if is_old:
+        return
 
     # karma message
     if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:

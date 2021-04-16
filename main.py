@@ -66,8 +66,8 @@ async def on_msg(message: types.Message):
     if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:
         karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
         if karma_changed:
-            msg = await bot.send_message(_chat_id, text=karma_changed)
-            await autodelete_message(chat_id=_chat_id, message_id=msg.message_id, seconds=destruction_timeout)
+            msg = await bot.send_message(_chat_id, text=karma_changed, reply_to_message_id=message.message_id)
+            await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
 
     # commands
     elif messageText == "карма":
@@ -77,7 +77,7 @@ async def on_msg(message: types.Message):
         global last_top
         if not last_top or (datetime.now(timezone.utc) - last_top).seconds > 300:
             reply_text, inline_kb = await getTop()
-            msg = await bot.send_message(_chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
+            msg: types.Message = await bot.send_message(_chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
             last_top = datetime.now(timezone.utc)
             await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout * 2)
 

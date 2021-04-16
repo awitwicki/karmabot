@@ -74,10 +74,21 @@ async def on_msg(message: types.Message):
 async def get_karma(user_id : int):
     user = users[user_id]
 
-    replytext = f"Привет {user['username']}, tвоя карма:\n\n"
-    replytext += f"Карма: `{user['karma']}`\n"
-    replytext += f"Сообшений: `{user['total_messages']}`\n"
-    replytext += f"Матов: `{user['total_mats']}`"
+    username = user['username']
+    karma = user['karma']
+    total_messages = user['total_messages']
+    total_mats = user['total_mats']
+    mats_percent = 0
+
+    if total_mats > 0 and total_messages > 0:
+        mats_percent = total_mats / total_messages
+        mats_percent *= 100
+        mats_percent = round(mats_percent, 2)
+
+    replytext = f"Привет {username}, tвоя карма:\n\n"
+    replytext += f"Карма: `{karma}`\n"
+    replytext += f"Сообшений: `{total_messages}`\n"
+    replytext += f"Матов: `{total_mats} ({mats_percent}%)`"
 
     replytext = replytext.replace('_', '\\_')
 

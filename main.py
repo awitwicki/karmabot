@@ -3,7 +3,7 @@
 
 from datetime import datetime, timezone
 from aiogram import Bot, types, executor
-from aiogram.dispatcher import Dispatcher #Updater, Filters, MessageHandler, CallbackQueryHandler
+from aiogram.dispatcher import Dispatcher
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
 import os
@@ -33,15 +33,16 @@ dp: Dispatcher = Dispatcher(bot)
 
 bot_id = bot.id
 
-@dp.callback_query_handler()
-async def stats(call: types.CallbackQuery):
-    command = update.callback_query.data
-    if command == 'refresh_top':
-        replytext, reply_markup = getTop()
-        replytext += f'\n`Обновлено UTC {datetime.utcnow()}`'
-        query = call.message
-        query.edit_message_text(text=replytext, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
-        return None
+
+@dp.callback_query_handler(lambda c: c.data == 'refresh_top')
+async def process_callback_update_top(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    chat_id = callback_query.message.chat.id
+    message_id = callback_query.message.message_id
+
+    reply_text, reply_markup = await getTop()
+    reply_text += f'\n`Обновлено UTC {datetime.utcnow()}`'
+    await bot.edit_message_text(text=reply_text, chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.message_handler()
@@ -68,8 +69,8 @@ async def on_msg(message: types.Message):
     elif messageText == "топ":
         global last_top
         if not last_top or (datetime.now(timezone.utc) - last_top).seconds > 300:
-            reply_text, reply_markup = await getTop()
-            msg = await bot.send_message(_chat_id, text=reply_text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+            reply_text, inline_kb = await getTop()
+            msg = await bot.send_message(_chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
             last_top = datetime.now(timezone.utc)
             await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout * 2)
 
@@ -177,9 +178,11 @@ async def getTop():
 
     replytext = replytext.replace('@', '')
 
-    keyboard = [[InlineKeyboardButton("Обновить", callback_data='refresh_top')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    return replytext, reply_markup
+    # keyboards.py
+    inline_btn = InlineKeyboardButton('Обновить', callback_data='refresh_top')
+    inline_kb = InlineKeyboardMarkup().add(inline_btn)
+
+    return replytext, inline_kb
 
 
 def read_users():

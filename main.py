@@ -180,8 +180,17 @@ async def getTop():
 
     for usr in sorted_users_list:
         username = usr['username']
-        matscount = usr['total_mats']
-        replytext+=f'`{username}` - матов `{matscount}`\n'
+        mats_count = usr['total_mats']
+
+        total_messages = usr['total_messages']
+        mats_percent = 0
+
+        if mats_count > 0 and total_messages > 0:
+            mats_percent = mats_count / total_messages
+            mats_percent *= 100
+            mats_percent = round(mats_percent, 2)
+
+        replytext+=f'`{username}` - матов `{mats_count} ({mats_percent}%)`\n'
 
     replytext = replytext.replace('@', '')
 

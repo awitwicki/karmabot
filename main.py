@@ -75,11 +75,12 @@ async def on_msg(message: types.Message):
         msg = await bot.send_message(_chat_id, text=reply_text, parse_mode=ParseMode.MARKDOWN)
     elif messageText == "топ":
         global last_top
-        if not last_top or (datetime.now(timezone.utc) - last_top).seconds > 300:
+        top_list_destruction_timeout = 300
+        if not last_top or (datetime.now(timezone.utc) - last_top).seconds > top_list_destruction_timeout:
             reply_text, inline_kb = await getTop()
             msg: types.Message = await bot.send_message(_chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
             last_top = datetime.now(timezone.utc)
-            await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout * 2)
+            await autodelete_message(msg.chat.id, msg.message_id, top_list_destruction_timeout)
 
 
 async def get_karma(user_id : int):

@@ -130,7 +130,7 @@ dmypy.json
 .pyre/
 
 #config files
-*.ini
+# *.ini
 
 #old database
 db.json

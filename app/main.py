@@ -14,7 +14,7 @@ from aiogram.types.message import Message
 from Config import Config
 from mats_counter import count_mats
 
-conf = Config('congfig.ini', ['telegram_token','destruction_timeout','database_filename'])
+conf = Config('data/congfig.ini', ['telegram_token','destruction_timeout','database_filename'])
 
 bot_token = conf.Data['telegram_token']
 flood_timeout = int(conf.Data['flood_timeout'])

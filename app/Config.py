@@ -9,7 +9,7 @@ class Config:
         if os.path.isfile(file_name):
             self.config.read(file_name)
         else: #create
-            print(f'Config file {file_name} not found, creating new one...')
+            print(f'Configппппп file {file_name} not found, creating new one...')
 
             config = {}
 

@@ -1,0 +1,10 @@
+# Project
+karmabot.service
+install.sh
+README.md
+
+# Cache
+__pycache__
+
+# Docker
+Dockerfile

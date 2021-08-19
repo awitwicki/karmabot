@@ -1,14 +1,15 @@
 # -*- coding: utf8 -*-
 #/usr/bin/python3.9
 
+import asyncio
+import codecs
 from datetime import datetime, timezone
+import os
+
 from aiogram import Bot, types, executor
 from aiogram.dispatcher import Dispatcher
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
-
-import os
-import codecs
-import asyncio
+from aiogram.types.message import Message
 
 from Config import Config
 from mats_counter import count_mats
@@ -34,22 +35,22 @@ dp: Dispatcher = Dispatcher(bot)
 
 bot_id = bot.id
 
-users_messages = {}
+chat_messages = {}
 
 def is_flood_message(message: types.Message):
-    usr_last_msg = users_messages.get(message.from_user.id)
-    if not usr_last_msg:
-        users_messages[message.from_user.id] = datetime.now()
+    chat_id: int = message.chat.id
+    chat_last_msg: Message = chat_messages.get(chat_id)
+    if not chat_last_msg:
+        chat_messages[chat_id] = message.date
         return False
     else:
-        is_flood = (message.date - usr_last_msg).seconds < flood_timeout
-        users_messages[message.from_user.id] = datetime.now()
+        is_flood = (message.date - chat_last_msg).seconds < flood_timeout
+        chat_messages[chat_id] = message.date
         return is_flood
 
 
 def check_message_is_old(message: types.Message):
     return (datetime.now() - message.date).seconds > 300
-
 
 @dp.callback_query_handler(lambda c: c.data == 'refresh_top')
 async def process_callback_update_top(callback_query: types.CallbackQuery):
@@ -65,7 +66,7 @@ async def process_callback_update_top(callback_query: types.CallbackQuery):
 @dp.message_handler()
 async def on_msg(message: types.Message):
     user_id = message.from_user.id
-    username = message.from_user.username
+    username = message.from_user.mention
     _chat_id = message.chat.id
     messageText = message.text.lower()
 

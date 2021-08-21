@@ -11,15 +11,12 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.types.message import Message
 
-from Config import Config
 from mats_counter import count_mats
 
-conf = Config('data/congfig.ini', ['telegram_token','destruction_timeout','database_filename'])
-
-bot_token = conf.Data['telegram_token']
-flood_timeout = int(conf.Data['flood_timeout'])
-destruction_timeout = int(conf.Data['destruction_timeout'])
-database_filename = conf.Data['database_filename']
+bot_token = os.getenv('KARMABOT_TELEGRAM_TOKEN')
+flood_timeout = int(os.getenv('KARMABOT_FLOOD_TIMEOUT', '10'))
+destruction_timeout = int(os.getenv('KARMABOT_DELETE_TIMEOUT', '30'))
+database_filename = 'data/' + (os.getenv('KARMABOT_DATABASE_FILENAME', 'karmabot_db.json'))
 
 increase_words = ['+','спасибо','дякую','благодарю', '👍', '😁', '😂', '😄', '😆', 'хаха']
 decrease_words = ['-', '👎']

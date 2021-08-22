@@ -34,20 +34,26 @@ bot_id = bot.id
 
 chat_messages = {}
 
-def is_flood_message(message: types.Message):
-    chat_id: int = message.chat.id
-    chat_last_msg: Message = chat_messages.get(chat_id)
-    if not chat_last_msg:
-        chat_messages[chat_id] = message.date
-        return False
-    else:
-        is_flood = (message.date - chat_last_msg).seconds < flood_timeout
-        chat_messages[chat_id] = message.date
-        return is_flood
+
+def add_or_update_user(func):
+    async def wrapper(message: Message):
+        user_id = message.from_user.id
+        username = message.from_user.mention
+        messageText = message.text.lower()
+
+        mats = await count_mats(messageText)
+        await add_or_update_user(user_id, username, mats)
+        return await func(message)
+    return wrapper
 
 
-def check_message_is_old(message: types.Message):
-    return (datetime.now() - message.date).seconds > 300
+def ignore_old_messages(func):
+    def wrapper(message: Message):
+        if (datetime.now() - message.date).seconds > destruction_timeout:
+            return False
+        return func(message)
+    return wrapper
+
 
 @dp.callback_query_handler(lambda c: c.data == 'refresh_top')
 async def process_callback_update_top(callback_query: types.CallbackQuery):
@@ -60,42 +66,49 @@ async def process_callback_update_top(callback_query: types.CallbackQuery):
     await bot.edit_message_text(text=reply_text, chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 
+@dp.message_handler(regexp='(^карма|karma$)')
+@add_or_update_user
+@ignore_old_messages
+async def on_msg_karma(message: types.Message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    reply_text = await get_karma(user_id)
+    msg = await bot.send_message(chat_id, text=reply_text, parse_mode=ParseMode.MARKDOWN)
+    await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout)
+
+
+@dp.message_handler(regexp='(^топ|top$)')
+@add_or_update_user
+@ignore_old_messages
+async def on_msg_karma(message: types.Message):
+    chat_id = message.chat.id
+
+    global last_top
+    top_list_destruction_timeout = 300
+    if not last_top or (datetime.now(timezone.utc) - last_top).seconds > top_list_destruction_timeout:
+        reply_text, inline_kb = await get_top()
+        msg: types.Message = await bot.send_message(chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
+        last_top = datetime.now(timezone.utc)
+        await autodelete_message(msg.chat.id, msg.message_id, top_list_destruction_timeout)
+
+
 @dp.message_handler()
+@add_or_update_user
+@ignore_old_messages
 async def on_msg(message: types.Message):
     user_id = message.from_user.id
-    username = message.from_user.mention
-    _chat_id = message.chat.id
+    chat_id = message.chat.id
     messageText = message.text.lower()
-
-    mats = await count_mats(messageText)
-    await add_or_update_user(user_id, username, mats)
-
-    is_old = check_message_is_old(message)
-    if is_old:
-        return
 
     # karma message
     if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:
         # check user on karmaspam
-        if not is_flood_message(message):
-            karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
-            if karma_changed:
-                msg = await bot.send_message(_chat_id, text=karma_changed, reply_to_message_id=message.message_id)
-                await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
-
-    # commands
-    elif messageText == "карма":
-        reply_text = await get_karma(user_id)
-        msg = await bot.send_message(_chat_id, text=reply_text, parse_mode=ParseMode.MARKDOWN)
-        await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout)
-    elif messageText == "топ":
-        global last_top
-        top_list_destruction_timeout = 300
-        if not last_top or (datetime.now(timezone.utc) - last_top).seconds > top_list_destruction_timeout:
-            reply_text, inline_kb = await get_top()
-            msg: types.Message = await bot.send_message(_chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
-            last_top = datetime.now(timezone.utc)
-            await autodelete_message(msg.chat.id, msg.message_id, top_list_destruction_timeout)
+        # if not is_flood_message(message):
+        karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
+        if karma_changed:
+            msg = await bot.send_message(chat_id, text=karma_changed, reply_to_message_id=message.message_id)
+            await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
 
 
 async def get_karma(user_id : int):

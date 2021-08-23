@@ -2,23 +2,30 @@
 Telegram KarmaBot with chat management
 Based on Aiogram
 ## Install
-Fill tour telegram token in `config.ini` file
+
+Use next environment variables:
+
+* `KARMABOT_TELEGRAM_TOKEN={YOUR_TOKEN}` - telegram token
+
+    (other variables is not necessarty and have default values)
+
+* `KARMABOT_FLOOD_TIMEOUT=10` - cooldown to allow +- karma per chat, default 30 seconds
+* `KARMABOT_DELETE_TIMEOUT=30` - time before bot messages being deleted
+* `KARMABOT_DATABASE_FILENAME=karmabot_db.json` - stored database name
+
+**Python:** Add to system environment that variables.
+
+**Docker compose:**  create `.env` file and fill it with that variables.
 
 ## Run
-### Docker
+
+### Docker compose
+
+Then run in console command:
 
 ```
-docker build -t karmabot .
-
-docker run --name=karmabot --env KARMABOT_TELEGRAM_TOKEN={telegram token} --env KARMABOT_FLOOD_TIMEOUT=10 --env KARMABOT_DELETE_TIMEOUT=30 --env KARMABOT_DATABASE_FILENAME=db.json -v `pwd`:/app/data -d karmabot:latest
+docker-compose up -d
 ```
-
-* `KARMABOT_TELEGRAM_TOKEN` - telegram token
-* `KARMABOT_FLOOD_TIMEOUT` - cooldown to allow +- karma per chat
-* `KARMABOT_DELETE_TIMEOUT` - time before bot messages being deleted
-* `KARMABOT_DATABASE_FILENAME` - stored database name
-
-* `-v 'pwd':/app/data` - mount volume to store database on host directory, instead `'pwd'` you can set absolute path
 
 ### Python
 

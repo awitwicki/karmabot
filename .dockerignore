@@ -5,6 +5,7 @@ README.md
 
 # Cache
 __pycache__
+.vscode
 
 # Docker
 Dockerfile

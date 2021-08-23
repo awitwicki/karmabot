@@ -1,0 +1,9 @@
+version: "3.3"
+services:
+  karmabot:
+    build: .
+    volumes:
+      - .:/app/data
+    env_file:
+    - .env
+    container_name: karmabot-container

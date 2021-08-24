@@ -127,7 +127,7 @@ async def get_karma(user_id : int):
 
     replytext = f"Привет {username}, tвоя карма:\n\n"
     replytext += f"Карма: `{karma}`\n"
-    replytext += f"Сообшений: `{total_messages}`\n"
+    replytext += f"Сообщений: `{total_messages}`\n"
     replytext += f"Матов: `{total_mats} ({mats_percent}%)`"
 
     replytext = replytext.replace('_', '\\_')

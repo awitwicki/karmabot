@@ -94,7 +94,7 @@ async def on_msg_karma(message: types.Message):
         await autodelete_message(msg.chat.id, msg.message_id, top_list_destruction_timeout)
 
 
-@dp.message_handler()
+@dp.message_handler(white_list_chats(), ignore_old_messages())
 @add_or_update_user
 async def on_msg(message: types.Message):
     user_id = message.from_user.id

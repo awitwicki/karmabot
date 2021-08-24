@@ -2,6 +2,7 @@ version: "3.3"
 services:
   karmabot:
     build: .
+    image: karmabot
     volumes:
       - .:/app/data
     env_file:

@@ -10,6 +10,7 @@ from aiogram import Bot, types, executor
 from aiogram.dispatcher import Dispatcher
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.types.message import Message
+from aiogram.dispatcher.filters import Filter
 
 from mats_counter import count_mats
 
@@ -17,22 +18,21 @@ bot_token = os.getenv('KARMABOT_TELEGRAM_TOKEN')
 flood_timeout = int(os.getenv('KARMABOT_FLOOD_TIMEOUT', '10'))
 destruction_timeout = int(os.getenv('KARMABOT_DELETE_TIMEOUT', '30'))
 database_filename = 'data/' + (os.getenv('KARMABOT_DATABASE_FILENAME', 'karmabot_db.json'))
+whitelist_chats = os.getenv('KARMABOT_ALLOWED_CHATS', '')
+
+whitelist_chats: list = None if whitelist_chats == '' else [int(chat) for chat in whitelist_chats.split(',')]
 
 increase_words = ['+','спасибо','дякую','благодарю', '👍', '😁', '😂', '😄', '😆', 'хаха']
 decrease_words = ['-', '👎']
 
 users = {}
 user_karma = {}
+chat_messages = {}
 
-bot_id = None
 last_top = None
 
 bot: Bot = Bot(token=bot_token)
 dp: Dispatcher = Dispatcher(bot)
-
-bot_id = bot.id
-
-chat_messages = {}
 
 
 def add_or_update_user(func):
@@ -46,13 +46,16 @@ def add_or_update_user(func):
         return await func(message)
     return wrapper
 
+class ignore_old_messages(Filter):
+    async def check(self, message: types.Message):
+        return (datetime.now() - message.date).seconds < destruction_timeout
 
-def ignore_old_messages(func):
-    def wrapper(message: Message):
-        if (datetime.now() - message.date).seconds > destruction_timeout:
-            return False
-        return func(message)
-    return wrapper
+class white_list_chats(Filter):
+    async def check(self, message: types.Message):
+        if whitelist_chats:
+            return message.chat.id in whitelist_chats
+        return True
+
 
 
 @dp.callback_query_handler(lambda c: c.data == 'refresh_top')
@@ -66,9 +69,8 @@ async def process_callback_update_top(callback_query: types.CallbackQuery):
     await bot.edit_message_text(text=reply_text, chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 
-@dp.message_handler(regexp='(^карма|karma$)')
+@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^карма|karma$)')
 @add_or_update_user
-@ignore_old_messages
 async def on_msg_karma(message: types.Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -78,9 +80,8 @@ async def on_msg_karma(message: types.Message):
     await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout)
 
 
-@dp.message_handler(regexp='(^топ|top$)')
+@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^топ|top$)')
 @add_or_update_user
-@ignore_old_messages
 async def on_msg_karma(message: types.Message):
     chat_id = message.chat.id
 
@@ -95,7 +96,6 @@ async def on_msg_karma(message: types.Message):
 
 @dp.message_handler()
 @add_or_update_user
-@ignore_old_messages
 async def on_msg(message: types.Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -150,8 +150,8 @@ async def add_or_update_user(user_id: int, username: str, mats_count: int):
 
 
 async def increase_karma(dest_user_id: int, message_text: str):
-    global bot_id
-    if dest_user_id == bot_id:
+    global bot
+    if dest_user_id == bot.id:
         if message_text in increase_words :
             return "спасибо ❤️"
 
@@ -252,4 +252,6 @@ async def autodelete_message(chat_id: int, message_id: int, seconds=0):
 
 if __name__ == '__main__':
     read_users()
-    executor.start_polling(dp, on_startup=print("Bot is started."))
+    dp.bind_filter(white_list_chats)
+    dp.bind_filter(ignore_old_messages)
+    executor.start_polling(dp, on_startup=print(f"Bot is started."))

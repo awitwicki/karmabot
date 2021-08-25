@@ -35,6 +35,18 @@ bot: Bot = Bot(token=bot_token)
 dp: Dispatcher = Dispatcher(bot)
 
 
+def is_flood_message(message: types.Message):
+    chat_id: int = message.chat.id
+    chat_last_msg: Message = chat_messages.get(chat_id)
+    if not chat_last_msg:
+        chat_messages[chat_id] = message.date
+        return False
+    else:
+        is_flood = (message.date - chat_last_msg).seconds < flood_timeout
+        chat_messages[chat_id] = message.date
+        return is_flood
+
+
 def add_or_update_user(func):
     async def wrapper(message: Message):
         user_id = message.from_user.id
@@ -57,7 +69,6 @@ class white_list_chats(Filter):
         return True
 
 
-
 @dp.callback_query_handler(lambda c: c.data == 'refresh_top')
 async def process_callback_update_top(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
@@ -69,7 +80,7 @@ async def process_callback_update_top(callback_query: types.CallbackQuery):
     await bot.edit_message_text(text=reply_text, chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 
-@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^карма|karma$)')
+@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^карма$|^karma$)')
 @add_or_update_user
 async def on_msg_karma(message: types.Message):
     user_id = message.from_user.id
@@ -80,7 +91,7 @@ async def on_msg_karma(message: types.Message):
     await autodelete_message(msg.chat.id, msg.message_id, destruction_timeout)
 
 
-@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^топ|top$)')
+@dp.message_handler(white_list_chats(), ignore_old_messages(), regexp='(^топ$|^top$)')
 @add_or_update_user
 async def on_msg_karma(message: types.Message):
     chat_id = message.chat.id
@@ -104,11 +115,11 @@ async def on_msg(message: types.Message):
     # karma message
     if message.reply_to_message and message.reply_to_message.from_user.id and user_id != message.reply_to_message.from_user.id:
         # check user on karmaspam
-        # if not is_flood_message(message):
-        karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
-        if karma_changed:
-            msg = await bot.send_message(chat_id, text=karma_changed, reply_to_message_id=message.message_id)
-            await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
+        if not is_flood_message(message):
+            karma_changed = await increase_karma(message.reply_to_message.from_user.id, messageText)
+            if karma_changed:
+                msg = await bot.send_message(chat_id, text=karma_changed, reply_to_message_id=message.message_id)
+                await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
 
 
 async def get_karma(user_id : int):

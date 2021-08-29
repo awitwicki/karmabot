@@ -2,6 +2,7 @@
 karmabot.service
 install.sh
 README.md
+data/*
 
 # Cache
 __pycache__

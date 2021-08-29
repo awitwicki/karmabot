@@ -12,7 +12,7 @@ Use next environment variables:
 * `KARMABOT_FLOOD_TIMEOUT=10` - cooldown to allow +- karma per chat, default 30 seconds
 * `KARMABOT_DELETE_TIMEOUT=30` - time before bot messages being deleted
 * `KARMABOT_DATABASE_FILENAME=karmabot_db.json` - stored database name
-* `KARMABOT_ALLOWED_CHATS=-10010101,-10000101010` - whitelist chats. If it empty, whitelist mode will be turned off.
+* `KARMABOT_ALLOWED_CHATS=-10010101,-10000101010` - whitelist chats. If it empty or not added to envs, whitelist mode will be turned off.
 
 **Python:** Add to system environment that variables.
 

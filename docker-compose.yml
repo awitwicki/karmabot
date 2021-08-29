@@ -4,7 +4,7 @@ services:
     build: .
     image: karmabot
     volumes:
-      - .:/app/data
+      - ./data:/app/data
     env_file:
     - .env
     container_name: karmabot-container

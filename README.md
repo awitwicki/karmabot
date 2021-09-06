@@ -7,7 +7,7 @@ Use next environment variables:
 
 * `KARMABOT_TELEGRAM_TOKEN={YOUR_TOKEN}` - telegram token
 
-    (other variables is not necessarty and have default values)
+    (other variables is not necessary and have default values)
 
 * `KARMABOT_FLOOD_TIMEOUT=10` - cooldown to allow +- karma per chat, default 30 seconds
 * `KARMABOT_DELETE_TIMEOUT=30` - time before bot messages being deleted

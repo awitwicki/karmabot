@@ -10,5 +10,5 @@ multidict==5.1.0
 pytz==2021.1
 typing-extensions==3.7.4.3
 yarl==1.6.3
-sklearn
-pymorphy2==0.9.1
+# sklearn
+# pymorphy2==0.9.1

@@ -12,7 +12,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.types.message import Message
 from aiogram.dispatcher.filters import Filter
 
-from NewbiesModel import NewbiesModel
+# from NewbiesModel import NewbiesModel
 from mats_counter import count_mats
 
 bot_token = os.getenv('KARMABOT_TELEGRAM_TOKEN')
@@ -36,8 +36,8 @@ last_top = None
 bot: Bot = Bot(token=bot_token)
 dp: Dispatcher = Dispatcher(bot)
 
-newbiesModel = NewbiesModel()
-newbiesModel.upload_model("model_clf.pickle")
+# newbiesModel = NewbiesModel()
+# newbiesModel.upload_model("model_clf.pickle")
 
 
 def is_flood_message(message: types.Message):
@@ -126,13 +126,13 @@ async def on_msg(message: types.Message):
                 msg = await bot.send_message(chat_id, text=karma_changed, reply_to_message_id=message.message_id)
                 await autodelete_message(msg.chat.id, message_id=msg.message_id, seconds=destruction_timeout)
 
-    is_python_advice = newbiesModel.predict_senctence(messageText)
-    if is_python_advice == 1:
-        advice_reply = 'Кто-то сказал курс по питону?\nВот тут мы для тебя все собрали!\n\n#курсы'
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton(text="Курсы без смс и регистрации", url="https://github.com/vviedienieiev/Learning/blob/main/python_guide_by_vv.ipynb"))
+    # is_python_advice = newbiesModel.predict_senctence(messageText)
+    # if is_python_advice == 1:
+    #     advice_reply = 'Кто-то сказал курс по питону?\nВот тут мы для тебя все собрали!\n\n#курсы'
+    #     keyboard = types.InlineKeyboardMarkup()
+    #     keyboard.add(types.InlineKeyboardButton(text="Курсы без смс и регистрации", url="https://github.com/vviedienieiev/Learning/blob/main/python_guide_by_vv.ipynb"))
 
-        msg = await bot.send_message(chat_id, text=advice_reply, reply_to_message_id=message.message_id, reply_markup=keyboard)
+    #     msg = await bot.send_message(chat_id, text=advice_reply, reply_to_message_id=message.message_id, reply_markup=keyboard)
 
 
 async def get_karma(user_id : int):

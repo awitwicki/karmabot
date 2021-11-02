@@ -128,11 +128,12 @@ async def on_msg(message: types.Message):
 
     # is_python_advice = newbiesModel.predict_senctence(messageText)
     # if is_python_advice == 1:
-    #     advice_reply = 'Кто-то сказал курс по питону?\nВот тут мы для тебя все собрали!\n\n#курсы'
-    #     keyboard = types.InlineKeyboardMarkup()
-    #     keyboard.add(types.InlineKeyboardButton(text="Курсы без смс и регистрации", url="https://github.com/vviedienieiev/Learning/blob/main/python_guide_by_vv.ipynb"))
+    if 'курсы' in message.text:
+        advice_reply = 'Кто-то сказал курс по питону?\nВот тут мы для тебя все собрали!\n\n#курсы'
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton(text="Курсы без смс и регистрации", url="https://github.com/vviedienieiev/Learning/blob/main/python_guide_by_vv.ipynb"))
 
-    #     msg = await bot.send_message(chat_id, text=advice_reply, reply_to_message_id=message.message_id, reply_markup=keyboard)
+        msg = await bot.send_message(chat_id, text=advice_reply, reply_to_message_id=message.message_id, reply_markup=keyboard)
 
 
 async def get_karma(user_id : int):

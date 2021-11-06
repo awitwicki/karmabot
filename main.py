@@ -1,6 +1,3 @@
-# -*- coding: utf8 -*-
-#/usr/bin/python3.9
-
 import asyncio
 import codecs
 from datetime import datetime, timezone
@@ -13,6 +10,7 @@ from aiogram.types.message import Message
 from aiogram.dispatcher.filters import Filter
 
 # from NewbiesModel import NewbiesModel
+from helpers import google_search
 from mats_counter import count_mats
 
 bot_token = os.getenv('KARMABOT_TELEGRAM_TOKEN')
@@ -67,6 +65,7 @@ class ignore_old_messages(Filter):
     async def check(self, message: types.Message):
         return (datetime.now() - message.date).seconds < destruction_timeout
 
+
 class white_list_chats(Filter):
     async def check(self, message: types.Message):
         if whitelist_chats:
@@ -108,6 +107,22 @@ async def on_msg_karma(message: types.Message):
         msg: types.Message = await bot.send_message(chat_id, text=reply_text, reply_markup=inline_kb, parse_mode=ParseMode.MARKDOWN)
         last_top = datetime.now(timezone.utc)
         await autodelete_message(msg.chat.id, msg.message_id, top_list_destruction_timeout)
+
+
+@dp.message_handler(white_list_chats(), ignore_old_messages(), commands=['google'])
+@add_or_update_user
+async def google(message: types.Message):
+    #check if its reply
+    if not message.reply_to_message:
+        reply_text = 'Команда /google должна быть ответом на чье-то сообщение в чате'
+        await bot.send_message(message.chat.id, text=reply_text)
+        return
+
+    text_to_search = message.reply_to_message.text
+    if text_to_search != None:
+        result = google_search(text_to_search)
+        result_str = f'Вот что я нашел по запросу "{text_to_search}"\n\n{result}'
+        await bot.send_message(message.chat.id, text=result_str)
 
 
 @dp.message_handler(white_list_chats(), ignore_old_messages())

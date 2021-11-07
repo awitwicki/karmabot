@@ -10,7 +10,7 @@ from aiogram.types.message import Message
 from aiogram.dispatcher.filters import Filter
 
 # from NewbiesModel import NewbiesModel
-from helpers import google_search
+from helpers import stackoverflow_search
 from mats_counter import count_mats
 
 bot_token = os.getenv('KARMABOT_TELEGRAM_TOKEN')
@@ -120,7 +120,7 @@ async def google(message: types.Message):
 
     text_to_search = message.reply_to_message.text
     if text_to_search != None:
-        result = google_search(text_to_search)
+        result = stackoverflow_search(text_to_search)
         result_str = f'Вот что я нашел по запросу "{text_to_search}"\n\n{result}'
         await bot.send_message(message.chat.id, text=result_str)
 

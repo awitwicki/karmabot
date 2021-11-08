@@ -113,16 +113,22 @@ async def on_msg_karma(message: types.Message):
 @add_or_update_user
 async def google(message: types.Message):
     #check if its reply
-    if not message.reply_to_message:
+    if not message.reply_to_message or message.reply_to_message.from_user.id == bot.id:
         reply_text = 'Команда /google должна быть ответом на чье-то сообщение в чате'
-        await bot.send_message(message.chat.id, text=reply_text)
+        msg = await bot.send_message(message.chat.id, text=reply_text, reply_to_message_id=message.message_id)
+
+        await asyncio.sleep(5)
+        await bot.delete_message(chat_id=message.chat.id, message_id=msg.message_id)
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+
         return
 
     text_to_search = message.reply_to_message.text
     if text_to_search != None:
         result = stackoverflow_search(text_to_search)
-        result_str = f'Вот что я нашел по запросу "{text_to_search}"\n\n{result}'
-        await bot.send_message(message.chat.id, text=result_str)
+        result_str = f'Вот что я нашел по запросу\n"{text_to_search}"\n\n{result}'
+        await bot.send_message(message.chat.id, text=result_str, reply_to_message_id=message.reply_to_message.message_id)
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
 
 @dp.message_handler(white_list_chats(), ignore_old_messages())
